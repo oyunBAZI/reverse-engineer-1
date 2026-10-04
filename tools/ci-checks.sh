@@ -224,6 +224,22 @@ if [ -d source-app/game-assets/assets ]; then
   fi
 fi
 
+# "Which assets are in the APK and which are CDN-only" is a question the
+# README answers in prose; asset_completeness_report.{md,json} answers it with
+# numbers for every one of the 95,602 paths in the gameres manifest. Like the
+# gate above, this only runs where the pipeline inputs are present (a fresh
+# clone has neither the inventory nor the manifest), and it fails when the
+# generated report no longer says what its inputs say.
+if [ -f source-app/game-assets/inventory.jsonl ] \
+   && [ -f decompiled/apktool/assets/AssetBundles/gameres ]; then
+  if out="$(python3 tools/asset-completeness-report.py --check 2>&1)"; then
+    ok "asset completeness report matches its inputs $(printf '%s' "$out" | sed 's/^asset completeness report is current //')"
+  else
+    bad "asset completeness report is stale - rerun tools/asset-completeness-report.py"
+    printf '%s\n' "$out" | tail -3 | sed 's/^/        /' >&2
+  fi
+fi
+
 # The recovered overlay is applied on top of unluac output, so it has to be
 # idempotent: the pipeline runs it after every Lua stage, and a second run that
 # failed would break every subsequent decompile.

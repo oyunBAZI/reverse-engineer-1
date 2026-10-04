@@ -45,6 +45,7 @@ tools/unluac-batch/patch/         the 2 unluac sources patched in-repo
 tools/unluac-batch/recovered/     5 hand-reconstructed modules + patches
 tools/check-lua-syntax.py         compiles every recovered .lua (FAIL/WARN gate)
 tools/check-asset-inventory.py    asserts the extracted assets match the inventory
+tools/asset-completeness-report.py  classifies every asset path: in-APK vs. CDN-only
 tools/extract-unity-assets.py     bin/Data Unity files -> textures/scenes/shaders
 tools/extract-game-assets.py      packed AssetBundle fragment -> art and audio
 tools/peprobe/                    .NET helper that validates recovered PE images
@@ -70,6 +71,8 @@ decompiled/unity/assets/          the full Unity asset payload as shipped
 
 unity-project/                    the game reassembled as a Unity project,
                                   in its original Assets/ layout (symlinks)
+asset_completeness_report.{md,json}  the asset boundary, per path (generated
+                                  by tools/asset-completeness-report.py)
 .github/workflows/ci.yml          validates the pipeline on every push/PR
 tools/ci-checks.sh                the checks CI runs (also runnable locally)
 ```
@@ -311,6 +314,13 @@ texture, UnityPy does not fail, it returns a full-resolution image spanning the
 whole 0-255 range, so the previous revision wrote **5,281 PNGs of noise that
 sized like real art (mean ~130 KB, 443 MB in total)** and looked fine in a file
 browser. `tools/extract-game-assets.py` refuses to write them and says why.
+
+**How much of the game's art this is** is measured rather than estimated:
+`asset_completeness_report.{md,json}` (generated and CI-checked by
+`tools/asset-completeness-report.py`) classifies all 95,602 asset paths the
+`gameres` manifest describes. 35,699 (37.3%) are reachable from the APK and
+59,903 (62.7%) live only in the ~24,696 bundles the studio serves from its
+CDN; every path is listed with its class in the JSON.
 
 **The audio is in the APK**, which the object census initially got wrong. All
 613 `AudioClip`s carry a zero-length `m_AudioData`, which reads as "shipped on
